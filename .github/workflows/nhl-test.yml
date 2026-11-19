@@ -1,0 +1,47 @@
+name: NHL IRQ test Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Download exact PR 4183 source
+        uses: actions/checkout@v4
+        with:
+          repository: shadps4-emu/shadPS4
+          ref: ed87ea4d0dd577c2e0fe2366d5ad5e86d51dc0f8
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up Windows compiler environment
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=clang-cl
+          -DCMAKE_CXX_COMPILER=clang-cl
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE=ON
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Upload test emulator
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadPS4-PR4183-Windows-test
+          path: |
+            build/shadPS4.exe
+            build/*.dll
+          if-no-files-found: error
+          retention-days: 14
